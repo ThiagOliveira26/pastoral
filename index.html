@@ -1,110 +1,81 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
   <title>Rifa Online</title>
-
-  <!-- Importa a biblioteca oficial do Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
+    body { font-family: Arial; padding: 20px; }
+    #numeros { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 20px; }
+    .numero {
+      width: 50px; height: 50px; display: flex;
+      align-items: center; justify-content: center;
+      border: 1px solid #ccc; cursor: pointer; border-radius: 6px;
     }
-    h1 {
-      margin-bottom: 20px;
-    }
-    #tabela-rifa {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-      gap: 10px;
-      max-width: 400px;
-      width: 100%;
-    }
-    button {
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    .disponivel {
-      background-color: #28a745;
-      color: white;
-    }
-    .disponivel:hover {
-      background-color: #218838;
-    }
-    .reservado {
-      background-color: #ccc;
-      color: #555;
-      cursor: not-allowed;
-    }
+    .reservado { background-color: #ffb3b3; cursor: not-allowed; }
   </style>
 </head>
 <body>
-  <h1>Rifa Online 🎟️</h1>
-  <p>Clique em um número disponível para reservar.</p>
-  <div id="tabela-rifa"></div>
+  <h1>Rifa Online</h1>
+
+  <div>
+    <input type="text" id="nome" placeholder="Seu nome" />
+    <button onclick="reservarNumero()">Reservar número selecionado</button>
+  </div>
+
+  <div id="numeros"></div>
 
   <script>
-    // ⚠️ Substitua pelos seus dados reais do Supabase:
-    const SUPABASE_URL = "https://ngybqueyebqmsllobfnb.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWJxdWV5ZWJxbXNsbG9iZm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTE2ODEsImV4cCI6MjA3NjM4NzY4MX0.1rVG8Q_7LfbS-gSVTcsij0YmzT0iIduNpDhxYH8QuaY";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // ✅ Inicializa Supabase
+    const supabase = window.supabase.createClient(
+      "https://ngybqueyebqmsllobfnb.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWJxdWV5ZWJxbXNsbG9iZm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTE2ODEsImV4cCI6MjA3NjM4NzY4MX0.1rVG8Q_7LfbS-gSVTcsij0YmzT0iIduNpDhxYH8QuaY"
+    );
+
+    let numeroSelecionado = null;
 
     async function carregarNumeros() {
-      const { data, error } = await supabaseClient
-        .from('rifa')
-        .select('*')
-        .order('numero', { ascending: true });
-
+      const { data, error } = await supabase.from('rifa').select('*').order('numero', { ascending: true });
       if (error) {
-        console.error('Erro ao carregar números:', error);
-        alert('Erro ao carregar números. Verifique a conexão com o Supabase.');
+        console.error("Erro ao carregar números:", error);
         return;
       }
 
-      const container = document.getElementById('tabela-rifa');
+      const container = document.getElementById('numeros');
       container.innerHTML = '';
-
       data.forEach(item => {
-        const btn = document.createElement('button');
-        btn.textContent = item.numero;
-        btn.disabled = item.reservado;
-        btn.className = item.reservado ? 'reservado' : 'disponivel';
-        if (!item.reservado) {
-          btn.onclick = () => reservarNumero(item.numero);
-        }
-        container.appendChild(btn);
+        const div = document.createElement('div');
+        div.classList.add('numero');
+        if (item.reservado) div.classList.add('reservado');
+        div.textContent = item.numero;
+        div.onclick = () => {
+          if (!item.reservado) numeroSelecionado = item.numero;
+        };
+        container.appendChild(div);
       });
     }
 
-    async function reservarNumero(numero) {
-      const nome = prompt(`Digite seu nome para reservar o número ${numero}:`);
-      if (!nome) return;
+    async function reservarNumero() {
+      const nome = document.getElementById('nome').value;
+      if (!numeroSelecionado || !nome) {
+        alert("Selecione um número e informe seu nome.");
+        return;
+      }
 
-      const { error } = await supabaseClient
+      const { error } = await supabase
         .from('rifa')
-        .update({ reservado: true, nome: nome })
-        .eq('numero', numero);
+        .update({ nome: nome, reservado: true })
+        .eq('numero', numeroSelecionado);
 
       if (error) {
-        console.error('Erro ao reservar número:', error);
-        alert('Erro ao reservar. Tente novamente.');
+        console.error("Erro ao reservar número:", error);
       } else {
-        alert(`Número ${numero} reservado com sucesso!`);
+        alert(`Número ${numeroSelecionado} reservado para ${nome}`);
         carregarNumeros();
       }
     }
 
-    // Inicializa a tabela ao carregar a página
+    // 🔹 Inicializa ao abrir a página
     carregarNumeros();
   </script>
 </body>
