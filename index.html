@@ -1,24 +1,23 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rifa Online</title>
 
-  <!-- Biblioteca do Supabase -->
+  <!-- Importa a biblioteca oficial do Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f7f7f7;
+      background-color: #f4f4f4;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 20px;
     }
     h1 {
-      color: #333;
       margin-bottom: 20px;
     }
     #tabela-rifa {
@@ -26,6 +25,7 @@
       grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
       gap: 10px;
       max-width: 400px;
+      width: 100%;
     }
     button {
       padding: 10px;
@@ -35,36 +35,29 @@
       font-size: 16px;
     }
     .disponivel {
-      background-color: #4CAF50;
+      background-color: #28a745;
       color: white;
     }
     .disponivel:hover {
-      background-color: #45a049;
+      background-color: #218838;
     }
     .reservado {
       background-color: #ccc;
-      color: #666;
+      color: #555;
       cursor: not-allowed;
     }
   </style>
 </head>
-
 <body>
   <h1>Rifa Online 🎟️</h1>
   <p>Clique em um número disponível para reservar.</p>
   <div id="tabela-rifa"></div>
 
   <script>
-    // 🔑 Configuração Supabase — SUBSTITUA pelos seus dados reais
-
-    import { createClient } from '@supabase/supabase-js'
-
-    const SUPABASE_URL = 'https://ngybqueyebqmsllobfnb.supabase.co'
-    const SUPABASE_ANON_KEY = process.env.SUPABASE_KEY
-    //const supabase = createClient(supabaseUrl, supabaseKey)
-    //const SUPABASE_URL = "https://ngybqueyebqmsllobfnb.supabase.co";
+    // ⚠️ Substitua pelos seus dados reais do Supabase:
+    const SUPABASE_URL = "https://ngybqueyebqmsllobfnb.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWJxdWV5ZWJxbXNsbG9iZm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTE2ODEsImV4cCI6MjA3NjM4NzY4MX0.1rVG8Q_7LfbS-gSVTcsij0YmzT0iIduNpDhxYH8QuaY";
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     async function carregarNumeros() {
       const { data, error } = await supabaseClient
@@ -74,6 +67,7 @@
 
       if (error) {
         console.error('Erro ao carregar números:', error);
+        alert('Erro ao carregar números. Verifique a conexão com o Supabase.');
         return;
       }
 
@@ -93,7 +87,7 @@
     }
 
     async function reservarNumero(numero) {
-      const nome = prompt(`Qual seu nome para reservar o número ${numero}?`);
+      const nome = prompt(`Digite seu nome para reservar o número ${numero}:`);
       if (!nome) return;
 
       const { error } = await supabaseClient
@@ -110,9 +104,8 @@
       }
     }
 
-    // Inicializa ao carregar a página
+    // Inicializa a tabela ao carregar a página
     carregarNumeros();
   </script>
 </body>
 </html>
-
