@@ -3,79 +3,171 @@
 <head>
   <meta charset="UTF-8" />
   <title>Rifa Online</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    #numeros { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 20px; }
-    .numero {
-      width: 50px; height: 50px; display: flex;
-      align-items: center; justify-content: center;
-      border: 1px solid #ccc; cursor: pointer; border-radius: 6px;
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      padding: 20px;
+      text-align: center;
     }
-    .reservado { background-color: #ffb3b3; cursor: not-allowed; }
+
+    h1 {
+      color: #333;
+    }
+
+    #numeros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .numero-btn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      font-size: 14px;
+      width: 60px;
+    }
+
+    .numero-btn:hover {
+      background: #0056b3;
+    }
+
+    .numero-btn.reservado {
+      background: #ccc;
+      cursor: not-allowed;
+      color: #333;
+    }
+
+    #formReserva {
+      margin-top: 30px;
+    }
+
+    input {
+      padding: 8px;
+      margin: 5px;
+      width: 200px;
+      max-width: 90%;
+    }
+
+    button#confirmarReserva {
+      padding: 10px 20px;
+      background: green;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button#confirmarReserva:hover {
+      background: darkgreen;
+    }
   </style>
 </head>
 <body>
-  <h1>Rifa Online</h1>
-
-  <div>
-    <input type="text" id="nome" placeholder="Seu nome" />
-    <button onclick="reservarNumero()">Reservar número selecionado</button>
-  </div>
+  <h1>🎟️ Rifa Online</h1>
 
   <div id="numeros"></div>
 
+  <div id="formReserva">
+    <h2>Reservar número</h2>
+    <input type="text" id="nome" placeholder="Seu nome" required><br>
+    <input type="email" id="email" placeholder="Seu e-mail (opcional)"><br>
+    <button id="confirmarReserva">Confirmar reserva</button>
+  </div>
+
   <script>
-    // ✅ Inicializa Supabase
-    const supabase = window.supabase.createClient(
-      "https://ngybqueyebqmsllobfnb.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWJxdWV5ZWJxbXNsbG9iZm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTE2ODEsImV4cCI6MjA3NjM4NzY4MX0.1rVG8Q_7LfbS-gSVTcsij0YmzT0iIduNpDhxYH8QuaY"
-    );
+    // ✅ Coloque suas credenciais reais do Supabase abaixo:
+    const SUPABASE_URL = "https://ngybqueyebqmsllobfnb.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWJxdWV5ZWJxbXNsbG9iZm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTE2ODEsImV4cCI6MjA3NjM4NzY4MX0.1rVG8Q_7LfbS-gSVTcsij0YmzT0iIduNpDhxYH8QuaY"; // ⚠️ substitua pela sua chave anon
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let numeroSelecionado = null;
 
+    // 🔹 Carrega todos os números da rifa
     async function carregarNumeros() {
-      const { data, error } = await supabase.from('rifa').select('*').order('numero', { ascending: true });
-      if (error) {
-        console.error("Erro ao carregar números:", error);
-        return;
-      }
+      const { data, error } = await supabase
+        .from('rifa')
+        .select('*')
+        .order('number', { ascending: true });
 
       const container = document.getElementById('numeros');
       container.innerHTML = '';
+
+      if (error) {
+        console.error('Erro ao carregar números:', error);
+        alert('Erro ao carregar números. Verifique a conexão com o Supabase.');
+        return;
+      }
+
       data.forEach(item => {
-        const div = document.createElement('div');
-        div.classList.add('numero');
-        if (item.reservado) div.classList.add('reservado');
-        div.textContent = item.numero;
-        div.onclick = () => {
-          if (!item.reservado) numeroSelecionado = item.numero;
-        };
-        container.appendChild(div);
+        const button = document.createElement('button');
+        button.textContent = item.number;
+        button.className = 'numero-btn';
+
+        if (item.status === 'available') {
+          button.onclick = () => selecionarNumero(item.number, button);
+        } else {
+          button.disabled = true;
+          button.classList.add('reservado');
+        }
+
+        container.appendChild(button);
       });
     }
 
+    // 🔸 Seleciona um número para reservar
+    function selecionarNumero(num, btn) {
+      numeroSelecionado = num;
+      document.querySelectorAll('.numero-btn').forEach(b => b.style.background = b.classList.contains('reservado') ? '#ccc' : '#007bff');
+      btn.style.background = '#28a745';
+    }
+
+    // 🟢 Reservar número no Supabase
     async function reservarNumero() {
-      const nome = document.getElementById('nome').value;
-      if (!numeroSelecionado || !nome) {
-        alert("Selecione um número e informe seu nome.");
+      const nome = document.getElementById('nome').value.trim();
+      const email = document.getElementById('email').value.trim();
+
+      if (!nome || !numeroSelecionado) {
+        alert('Por favor, selecione um número e insira seu nome.');
         return;
       }
 
       const { error } = await supabase
         .from('rifa')
-        .update({ nome: nome, reservado: true })
-        .eq('numero', numeroSelecionado);
+        .update({
+          status: 'reserved',
+          reserver_name: nome,
+          reserver_email: email || null,
+          reserved_at: new Date().toISOString()
+        })
+        .eq('number', numeroSelecionado);
 
       if (error) {
-        console.error("Erro ao reservar número:", error);
+        console.error('Erro ao reservar número:', error);
+        alert('Não foi possível reservar. Tente novamente.');
       } else {
-        alert(`Número ${numeroSelecionado} reservado para ${nome}`);
+        alert(`Número ${numeroSelecionado} reservado com sucesso!`);
+        numeroSelecionado = null;
+        document.getElementById('nome').value = '';
+        document.getElementById('email').value = '';
         carregarNumeros();
       }
     }
 
-    // 🔹 Inicializa ao abrir a página
+    document.getElementById('confirmarReserva').addEventListener('click', reservarNumero);
+
     carregarNumeros();
   </script>
 </body>
