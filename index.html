@@ -1,188 +1,111 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rifa Online</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- Biblioteca do Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; color: #222; }
-    h1 { text-align:center; }
-    #grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); max-width:900px; margin: 20px auto; }
-    .cell { padding: 12px; border-radius: 8px; text-align:center; font-weight:bold; cursor:pointer; user-select:none; box-shadow: 0 1px 3px rgba(0,0,0,0.08);}
-    .available { background: linear-gradient(180deg,#2ecc71, #27ae60); color: white; }
-    .reserved { background: linear-gradient(180deg,#d0d0d0,#b8b8b8); color: #222; cursor: default; }
-    .reserved small { display:block; font-weight:normal; font-size:11px; color:#333; margin-top:6px; }
-    #info { text-align:center; margin-top: 8px; }
-    #status { margin-top: 10px; text-align:center; font-size:14px; }
-    .center { text-align:center; }
-    button { padding:8px 12px; border-radius:6px; border:none; cursor:pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    #tabela-rifa {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 10px;
+      max-width: 400px;
+    }
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .disponivel {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .disponivel:hover {
+      background-color: #45a049;
+    }
+    .reservado {
+      background-color: #ccc;
+      color: #666;
+      cursor: not-allowed;
+    }
   </style>
-  <!-- Supabase JS CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/bundle.min.js"></script>
 </head>
+
 <body>
-  <h1>Rifa Online</h1>
-  <div class="center">
-    <button id="refreshBtn">Atualizar</button>
-    <span id="status">Carregando...</span>
-  </div>
-  <div id="grid"></div>
-  <div id="info"></div>
+  <h1>Rifa Online 🎟️</h1>
+  <p>Clique em um número disponível para reservar.</p>
+  <div id="tabela-rifa"></div>
 
-<script>
-  // >>> CONFIGURE AQUI: cole os valores do seu projeto Supabase
-  const SUPABASE_URL = "https://ngybqueyebqmsllobfnb.supabase.co"; // substitua
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWJxdWV5ZWJxbXNsbG9iZm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTE2ODEsImV4cCI6MjA3NjM4NzY4MX0.1rVG8Q_7LfbS-gSVTcsij0YmzT0iIduNpDhxYH8QuaY"; // substitua
+  <script>
+    // 🔑 Configuração Supabase — SUBSTITUA pelos seus dados reais
+    const SUPABASE_URL = "https://ngybqueyebqmsllobfnb.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWJxdWV5ZWJxbXNsbG9iZm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTE2ODEsImV4cCI6MjA3NjM4NzY4MX0.1rVG8Q_7LfbS-gSVTcsij0YmzT0iIduNpDhxYH8QuaY";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    async function carregarNumeros() {
+      const { data, error } = await supabaseClient
+        .from('rifa')
+        .select('*')
+        .order('numero', { ascending: true });
 
-  const grid = document.getElementById('grid');
-  const info = document.getElementById('info');
-  const statusEl = document.getElementById('status');
-  const refreshBtn = document.getElementById('refreshBtn');
-
-  let numbersCache = {};
-
-  // Função que carrega todos os números
-  async function loadNumbers() {
-    statusEl.textContent = 'Carregando números...';
-    try {
-      let { data, error } = await supabase
-        .from('numbers')
-        .select('id, number, status, reserver_name, reserver_email, reserved_at')
-        .order('number', { ascending: true });
-
-      if (error) { throw error; }
-
-      numbersCache = {};
-      data.forEach(r => numbersCache[r.number] = r);
-      renderGrid(data);
-      statusEl.textContent = 'Pronto';
-    } catch (err) {
-      console.error(err);
-      statusEl.textContent = 'Erro ao carregar. Veja console.';
-    }
-  }
-
-  // Renderiza a grade
-  function renderGrid(items) {
-    grid.innerHTML = '';
-    items.forEach(item => {
-      const d = document.createElement('div');
-      d.className = 'cell ' + (item.status === 'available' ? 'available' : 'reserved');
-      d.dataset.number = item.number;
-      d.innerHTML = `<div>${item.number}</div>`;
-      if (item.status !== 'available') {
-        const small = document.createElement('small');
-        small.innerHTML = `${item.reserver_name ? escapeHtml(item.reserver_name) : ''}${item.reserver_email ? ' • ' + escapeHtml(item.reserver_email) : ''}`;
-        d.appendChild(small);
-      }
-      if (item.status === 'available') {
-        d.addEventListener('click', onClickAvailable);
-      }
-      grid.appendChild(d);
-    });
-
-    const remaining = items.filter(i => i.status === 'available').length;
-    info.textContent = `Números disponíveis: ${remaining} / ${items.length}`;
-  }
-
-  // Quando clica em um número disponível
-  async function onClickAvailable(e) {
-    const number = Number(e.currentTarget.dataset.number);
-    const name = prompt(`Digite seu nome para reservar o número ${number}:`);
-    if (!name) return alert('Reserva cancelada: informe um nome.');
-
-    const email = prompt('Digite um e-mail (opcional):') || null;
-
-    statusEl.textContent = 'Tentando reservar...';
-
-    try {
-      // Chama a função RPC (reserve_number) que faz a reserva atômica
-      const { data, error } = await supabase.rpc('reserve_number', { p_number: number, p_name: name, p_email: email });
-
-      if (error) throw error;
-
-      // data é um array de rows retornadas; pegamos a primeira
-      const result = Array.isArray(data) ? data[0] : data;
-      if (!result) { throw new Error('Resposta inesperada do servidor'); }
-
-      if (result.success) {
-        statusEl.textContent = `Número ${number} reservado com sucesso!`;
-        // atualiza cache e UI local imediatamente
-        numbersCache[number] = {
-          id: result.id,
-          number: result.number,
-          status: result.status,
-          reserver_name: result.reserver_name,
-          reserver_email: result.reserver_email,
-          reserved_at: result.reserved_at,
-        };
-        // Re-renderiza usando cache ordenada
-        const arr = Object.values(numbersCache).sort((a,b)=>a.number-b.number);
-        renderGrid(arr);
-      } else {
-        // já reservado por outro
-        statusEl.textContent = `Ooops — o número ${number} já foi reservado por outra pessoa.`;
-        // Atualiza UI com a info retornada
-        numbersCache[number] = {
-          id: result.id,
-          number: result.number,
-          status: result.status,
-          reserver_name: result.reserver_name,
-          reserver_email: result.reserver_email,
-          reserved_at: result.reserved_at,
-        };
-        const arr = Object.values(numbersCache).sort((a,b)=>a.number-b.number);
-        renderGrid(arr);
+      if (error) {
+        console.error('Erro ao carregar números:', error);
+        return;
       }
 
-    } catch (err) {
-      console.error(err);
-      statusEl.textContent = 'Erro ao reservar. Veja console.';
-      alert('Erro ao reservar. Ver detalhes no console do navegador.');
-    }
-  }
+      const container = document.getElementById('tabela-rifa');
+      container.innerHTML = '';
 
-  // Escuta alterações em tempo real
-  function subscribeRealtime() {
-    // Supabase Realtime channels via Postgres changes
-    supabase
-      .channel('public:numbers')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'numbers' },
-        (payload) => {
-          // payload contains: eventType, new, old, etc.
-          const ev = payload.eventType;
-          const row = payload.new || payload.old;
-          if (!row) return;
-          numbersCache[row.number] = row;
-          // Re-render (ordenado)
-          const arr = Object.values(numbersCache).sort((a,b)=>a.number-b.number);
-          renderGrid(arr);
-          statusEl.textContent = 'Atualizado (realtime)';
+      data.forEach(item => {
+        const btn = document.createElement('button');
+        btn.textContent = item.numero;
+        btn.disabled = item.reservado;
+        btn.className = item.reservado ? 'reservado' : 'disponivel';
+        if (!item.reservado) {
+          btn.onclick = () => reservarNumero(item.numero);
         }
-      )
-      .subscribe();
-  }
+        container.appendChild(btn);
+      });
+    }
 
-  // Fallback: poll a cada 30s para garantir sincronização
-  setInterval(loadNumbers, 30_000);
+    async function reservarNumero(numero) {
+      const nome = prompt(`Qual seu nome para reservar o número ${numero}?`);
+      if (!nome) return;
 
-  // inicialização
-  loadNumbers();
-  subscribeRealtime();
+      const { error } = await supabaseClient
+        .from('rifa')
+        .update({ reservado: true, nome: nome })
+        .eq('numero', numero);
 
-  refreshBtn.addEventListener('click', loadNumbers);
+      if (error) {
+        console.error('Erro ao reservar número:', error);
+        alert('Erro ao reservar. Tente novamente.');
+      } else {
+        alert(`Número ${numero} reservado com sucesso!`);
+        carregarNumeros();
+      }
+    }
 
-  // util simples para evitar XSS no display
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>"'`=\/]/g, function(s) {
-      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s];
-    });
-  }
-</script>
+    // Inicializa ao carregar a página
+    carregarNumeros();
+  </script>
 </body>
 </html>
