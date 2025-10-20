@@ -11,7 +11,15 @@
       background: #f8f9fa;
       padding: 20px;
       text-align: center;
-    }
+
+      background-image: url('fundo.png');
+      background-size: cover;          /* Faz a imagem ocupar toda a tela */
+      background-position: center;     /* Centraliza */
+      background-repeat: no-repeat;    /* Não repete */
+      background-attachment: fixed;    /* Fixa a imagem no fundo */
+      margin: 0;
+      font-family: Arial, sans-serif;
+      }
 
     h1 {
       color: #333;
@@ -72,12 +80,26 @@
     button#confirmarReserva:hover {
       background: darkgreen;
     }
+
+
+  /* opcional: para deixar o conteúdo legível */
+  .container {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 20px;
+    max-width: 800px;
+    margin: 50px auto;
+    border-radius: 10px;
+  }
+    
   </style>
 </head>
 <body>
+  <div class="container">
   <h1>🎟️ Rifa Pastoral Familiar</h1>
-  <h1>Prêmio: 2 Combos Big Dil (Lanche + Refri + Batata)</h1>
-  <h2>Sorteio: Dia 09 de Novembro na missa das 9hs</h2>
+  <h1>Prêmios:</h1>
+  <h2>2 Combos Big Dil (Lanche + Refri + Batata)</h2>
+  <h2>Kit Cosméticos, por Dona Rosinha</h2>
+  <h3>Sorteio: Dia 09 de Novembro na missa das 9hs</h3>
 
   <div id="numeros"></div>
 
@@ -172,8 +194,10 @@
 
     carregarNumeros();
   </script>
+  </div>
 </body>
 </html>
+
 
 
 
